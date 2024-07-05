@@ -21,7 +21,7 @@ interface ErrorMessage {
 }
 
 interface ActivityEditFormProps {
-  activityId: number;
+  activityData: ActivitiesDetailCheck;
 }
 
 interface newSchedule {
@@ -43,7 +43,7 @@ interface FormDataType {
   schedulesToAdd: newSchedule[];
 }
 
-const ActivityEditForm = ({ activityId }: ActivityEditFormProps) => {
+const ActivityEditForm = ({ activityData }: ActivityEditFormProps) => {
   const [formData, setFormData] = useState<FormDataType>({
     title: "",
     category: "",
@@ -59,26 +59,25 @@ const ActivityEditForm = ({ activityId }: ActivityEditFormProps) => {
   const [modalMessage, setModalMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const { data: details, isLoading } = useActivitiesDetailCheck(activityId);
-
   useEffect(() => {
-    if (details) {
+    if (activityData) {
       setFormData({
-        title: details.data.title || "",
-        category: details.data.category || "",
-        description: details.data.description || "",
-        price: details.data.price || 0,
-        address: details.data.address || "",
-        bannerImageUrl: details.data.bannerImageUrl || "",
+        title: activityData.title || "",
+        category: activityData.category || "",
+        description: activityData.description || "",
+        price: activityData.price || 0,
+        address: activityData.address || "",
+        bannerImageUrl: activityData.bannerImageUrl || "",
         subImageIdsToRemove: [],
         subImageUrlsToAdd: [],
         scheduleIdsToRemove: [],
         schedulesToAdd: [],
       });
     }
-  }, [details]);
+  }, [activityData]);
 
   const { isOpenModal, handleModalOpen, handleModalClose } = useModal();
+  const activityId = activityData.id;
   const { mutate: modify } = usePatchMyActivities(activityId);
 
   const handleActivityModify = (formData: FormDataType) => {
@@ -158,10 +157,6 @@ const ActivityEditForm = ({ activityId }: ActivityEditFormProps) => {
     });
   };
 
-  if (isLoading) return <ActivityEditFormSkeleton />;
-
-  if (!details) return null;
-
   return (
     <>
       <HeadMeta title={META_TAG.myActivityEdit["title"]} />
@@ -176,22 +171,22 @@ const ActivityEditForm = ({ activityId }: ActivityEditFormProps) => {
           </button>
         </div>
         <ActivityEditInfo
-          title={details.data.title}
-          description={details.data.description}
-          category={details.data.category}
-          price={details.data.price}
-          address={details.data.address}
+          title={activityData.title}
+          description={activityData.description}
+          category={activityData.category}
+          price={activityData.price}
+          address={activityData.address}
           handleFormData={handleInfoChange}
         />
         <ActivityEditSchedule
-          schedules={details.data.schedules}
+          schedules={activityData.schedules}
           handleAddSchedule={handleAddSchedule}
           handleRemoveSchedule={handleRemoveSchedule}
           handleSchedulesToAdd={handleSchedulesToAdd}
         />
         <ActivityEditImageUploader
-          bannerImageUrl={details.data.bannerImageUrl}
-          subImagesUrl={details.data.subImages}
+          bannerImageUrl={activityData.bannerImageUrl}
+          subImagesUrl={activityData.subImages}
           handleChangeBannerImage={handleChangeBannerImage}
           handleChangeSubImages={handleChangeSubImages}
           handleRemoveDefaultSubImages={handleRemoveDefaultSubImages}

@@ -1,86 +1,68 @@
-import ActivityEditForm from "@/Components/ActivityEdit/ActivityEditForm";
 import { auth } from "@/apis/auth/auth";
-import { activity } from "@/apis/myActivities/myActivites";
-import { Activities } from "@/apis/myActivities/myActivities.type";
+import ActivityEditForm from "@/Components/ActivityEdit/ActivityEditForm";
+import ActivityEditFormSkeleton from "@/Components/ActivityEdit/ActivityEditFormSkeleton";
+import { useAuth } from "@/context/Authcontext";
 import { useActivitiesDetailCheck } from "@/service/activities/useActivitiesService";
-import { QueryClient, dehydrate, useQuery } from "@tanstack/react-query";
+import { requestor } from "@/service/requestor";
+import { dehydrate, QueryClient, useQuery } from "@tanstack/react-query";
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
+
+const getActivityDetailCheck = async (activityId: number) => {
+  const response = await requestor.get(`/activities/${activityId}`);
+  const detailData = response.data;
+  console.log(detailData);
+  return detailData;
+};
 
 export const getServerSideProps: GetServerSideProps = async (
   context: GetServerSidePropsContext,
 ) => {
-  const { req, query } = context;
-  const { cookies } = req;
-  const { accessToken } = cookies;
-
-  // token이 없으면 홈페이지로 리다이렉트
-  if (!accessToken) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-
-  const { activityId }: { activityId?: string } = query;
-  const currentActivityId = activityId;
+  const { query } = context;
 
   const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery(["activities", currentActivityId], () =>
-    activity.detail(currentActivityId),
-  );
+  const activityId = query["activityId"];
+  const CurrentActivityId = Number(activityId);
 
-  const { data: userData } = await auth.getUser();
-  const loginId = userData?.id;
-
-  if (!userData || userData.id !== loginId) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
+  await queryClient.prefetchQuery({
+    queryKey: ["activities", CurrentActivityId],
+    queryFn: () => getActivityDetailCheck(CurrentActivityId),
+  });
 
   return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-    },
+    props: { dehydratedState: dehydrate(queryClient), CurrentActivityId },
   };
 };
 
-const ActivityEdit = () => {
+const ActivityEdit = ({ CurrentActivityId }: { CurrentActivityId: number }) => {
+  const { user } = useAuth();
   const router = useRouter();
-  const { activityId } = router.query;
-  const id = Number(activityId);
+  const loginId = user?.user.id;
 
-  const { data, error, isLoading } = useQuery(
-    ["activities", activityId],
-    () => activity.detail(activityId),
-    {
-      onSuccess: (data) => {
-        console.log("Fetched activity details:", data);
-      },
-      onError: (error) => {
-        console.error("Error fetching activity details:", error);
-      },
-    },
-  );
+  const { data, isLoading } = useQuery({
+    queryKey: ["activities"],
+    queryFn: () => getActivityDetailCheck(CurrentActivityId),
+    enabled: !!CurrentActivityId,
+  });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const userId = data?.userId;
+  console.log(loginId, userId);
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
+  useEffect(() => {
+    if (loginId !== userId) {
+      router.push("/");
+    }
+  }, [loginId, userId, router]);
+
+  if (isLoading) return <ActivityEditFormSkeleton />;
+
+  console.log(data);
 
   return (
     <>
-      <ActivityEditForm activityId={id} initialData={data} />
+      <ActivityEditForm activityData={data} />
     </>
   );
 };
