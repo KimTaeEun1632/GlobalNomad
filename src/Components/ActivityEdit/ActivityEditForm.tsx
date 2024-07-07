@@ -1,18 +1,12 @@
 import ActivityEditInfo from "./ActivityEditInfo";
 import ActivityEditSchedule from "./ActivityEditSchedule";
 import ActivityEditImageUploader from "./ActivityEditImageUploader";
-import { use, useEffect, useState } from "react";
-import {
-  useActivitiesDetailCheck,
-  useActivitiesRegistration,
-} from "@/service/activities/useActivitiesService";
+import { useEffect, useState } from "react";
 import { ActivitiesDetailCheck } from "@/service/activities/activities.type";
 import { useModal } from "@/hooks/useModal";
 import { usePatchMyActivities } from "@/service/myActivities/useMyActivitiesService";
-import ModalAlert from "../Modal/ModalAlert";
 import HeadMeta from "../Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
-import ActivityEditFormSkeleton from "./ActivityEditFormSkeleton";
 import ModalEditAlert from "../Modal/ModalEditAlert";
 import axios, { AxiosError } from "axios";
 

@@ -1,8 +1,6 @@
-import { auth } from "@/apis/auth/auth";
 import ActivityEditForm from "@/Components/ActivityEdit/ActivityEditForm";
 import ActivityEditFormSkeleton from "@/Components/ActivityEdit/ActivityEditFormSkeleton";
 import { useAuth } from "@/context/Authcontext";
-import { useActivitiesDetailCheck } from "@/service/activities/useActivitiesService";
 import { requestor } from "@/service/requestor";
 import { dehydrate, QueryClient, useQuery } from "@tanstack/react-query";
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
@@ -12,7 +10,6 @@ import { useEffect } from "react";
 const getActivityDetailCheck = async (activityId: number) => {
   const response = await requestor.get(`/activities/${activityId}`);
   const detailData = response.data;
-  console.log(detailData);
   return detailData;
 };
 
@@ -42,13 +39,12 @@ const ActivityEdit = ({ CurrentActivityId }: { CurrentActivityId: number }) => {
   const loginId = user?.user.id;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["activities"],
+    queryKey: ["activities", CurrentActivityId],
     queryFn: () => getActivityDetailCheck(CurrentActivityId),
     enabled: !!CurrentActivityId,
   });
 
   const userId = data?.userId;
-  console.log(loginId, userId);
 
   useEffect(() => {
     if (loginId !== userId) {
@@ -57,8 +53,6 @@ const ActivityEdit = ({ CurrentActivityId }: { CurrentActivityId: number }) => {
   }, [loginId, userId, router]);
 
   if (isLoading) return <ActivityEditFormSkeleton />;
-
-  console.log(data);
 
   return (
     <>
