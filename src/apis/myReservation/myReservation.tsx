@@ -13,6 +13,6 @@ export const getMyReservations = async ({
   const statusParam = status ? `&status=${status}` : "";
 
   return await instance.get<GetMyReservationsRes>(
-    `/my-reservations?size=${size}${cursorParam}${statusParam}`,
+    `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
   );
 };

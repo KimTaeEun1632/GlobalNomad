@@ -1,8 +1,12 @@
 import ReservationList from "@/Components/MyReservation/ReservationList";
 import NoReservationList from "@/Components/MyReservation/NoReservationList";
 import ReservationFilter from "@/Components/MyReservation/ReservationFilter";
-import { getMyReservations } from "@/apis/myReservation/myReservation";
-import { ReservationStatus } from "@/apis/myReservation/myReservation.type";
+// import { getMyReservations } from "@/apis/myReservation/myReservation";
+import {
+  GetMyReservationsParam,
+  GetMyReservationsRes,
+  ReservationStatus,
+} from "@/apis/myReservation/myReservation.type";
 import {
   useInfiniteQuery,
   dehydrate,
@@ -15,6 +19,41 @@ import MobileDropDown from "@/Components/MyPage/MobileDropDown";
 import { ReservationSkeleton } from "@/Components/MyReservation/ReservationSkeleton";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
+import { requestor } from "@/service/requestor";
+
+export const getMyReservations = async ({
+  cursorId,
+  size,
+  status,
+}: GetMyReservationsParam) => {
+  const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
+  const statusParam = status ? `&status=${status}` : "";
+  const response = await requestor.get(
+    `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
+  );
+  console.log(response);
+  return response.data;
+};
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const queryClient = new QueryClient();
+
+  const response = await queryClient.prefetchInfiniteQuery({
+    queryKey: ["MyReservations", "all"],
+    queryFn: ({ pageParam = 0 }) => {
+      const status = "all";
+      return getMyReservations({ size: 6, status, cursorId: pageParam });
+    },
+    initialPageParam: 0,
+  });
+  console.log(response);
+
+  return {
+    props: {
+      dehydratedState: dehydrate(queryClient),
+    },
+  };
+};
 
 const Reservations = () => {
   const [viewStatus, setViewStatus] = useState<ReservationStatus>("all");
@@ -73,20 +112,3 @@ const Reservations = () => {
 };
 
 export default Reservations;
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  const queryClient = new QueryClient();
-
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: ["MyReservations", null],
-    queryFn: async ({ pageParam = 0 }) =>
-      await getMyReservations({ size: 6, status: null, cursorId: pageParam }),
-    initialPageParam: 0,
-  });
-
-  return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-    },
-  };
-};
