@@ -14,31 +14,32 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import InfiniteScroll from "react-infinite-scroller";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import MobileDropDown from "@/Components/MyPage/MobileDropDown";
 import { ReservationSkeleton } from "@/Components/MyReservation/ReservationSkeleton";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
 import { requestor } from "@/service/requestor";
 
-export const getMyReservations = async ({
+const getMyReservations = async ({
   cursorId,
   size,
   status,
 }: GetMyReservationsParam) => {
   const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
   const statusParam = status ? `&status=${status}` : "";
-  const response = await requestor.get(
+
+  return await requestor.get<GetMyReservationsRes>(
     `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
   );
-  console.log(response);
-  return response.data;
 };
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getServerSideProps: GetServerSideProps = async (
+  context: GetServerSidePropsContext,
+) => {
   const queryClient = new QueryClient();
 
-  const response = await queryClient.prefetchInfiniteQuery({
+  await queryClient.prefetchInfiniteQuery({
     queryKey: ["MyReservations", "all"],
     queryFn: ({ pageParam = 0 }) => {
       const status = "all";
@@ -46,7 +47,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
     },
     initialPageParam: 0,
   });
-  console.log(response);
 
   return {
     props: {
