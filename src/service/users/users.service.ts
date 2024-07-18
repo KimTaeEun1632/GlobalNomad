@@ -16,6 +16,9 @@ class UsersService {
       params: { profileImageUrl },
     });
   }
+  getUser() {
+    return requestor.get<UsersCheckMyInformation>(`/users/me`);
+  }
 
   patchUsersEditMyInformation(data: UsersEditMyInformation) {
     console.log(data);
