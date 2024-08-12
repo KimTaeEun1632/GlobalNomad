@@ -54,14 +54,13 @@ const StatusCalendar = ({ activityId }: StatusCalendarProps) => {
     currentMonth,
     activityId,
   );
-
   const { isOpenModal, handleModalClose, handleModalOpen } = useModal();
 
   const transformEvents = (data: EventData[]) => {
     const events: { title: string; start: string; className: string }[] = [];
     data.forEach((item) => {
       events.push({
-        title: `예약: ${item.reservations.pending}`,
+        title: `신청: ${item.reservations.pending}`,
         start: item.date,
         className: "event-pending",
       });

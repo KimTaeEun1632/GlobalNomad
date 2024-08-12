@@ -1,4 +1,4 @@
-import { instance } from "../apis";
+import { requestor } from "@/service/requestor";
 import {
   GetMyReservationsParam,
   GetMyReservationsRes,
@@ -12,7 +12,7 @@ export const getMyReservations = async ({
   const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
   const statusParam = status ? `&status=${status}` : "";
 
-  return await instance.get<GetMyReservationsRes>(
+  return await requestor.get<GetMyReservationsRes>(
     `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
   );
 };

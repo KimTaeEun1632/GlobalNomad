@@ -11,7 +11,7 @@ export default function Document() {
         />
         <Script
           type="text/javascript"
-          src="//dapi.kakao.com/v2/maps/sdk.js?appkey=9cc2180d1a6fff2ed649d23c22fe9e83&libraries=services&autoload=false"
+          src="//dapi.kakao.com/v2/maps/sdk.js?appkey=ce3ca92d89e6612b46dc89cc5089b4b1&libraries=services&autoload=false"
         />
         <Script
           type="text/javascript"

@@ -19,7 +19,7 @@ import MobileDropDown from "@/Components/MyPage/MobileDropDown";
 import { ReservationSkeleton } from "@/Components/MyReservation/ReservationSkeleton";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
-import { requestor } from "@/service/requestor";
+import { requestor, setContext } from "@/service/requestor";
 
 const getMyReservations = async ({
   cursorId,
@@ -29,20 +29,23 @@ const getMyReservations = async ({
   const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
   const statusParam = status ? `&status=${status}` : "";
 
-  return await requestor.get<GetMyReservationsRes>(
+  const response = await requestor.get<GetMyReservationsRes>(
     `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
   );
+  console.log(response);
+  return response.data;
 };
 
 export const getServerSideProps: GetServerSideProps = async (
   context: GetServerSidePropsContext,
 ) => {
+  setContext(context);
   const queryClient = new QueryClient();
-
   await queryClient.prefetchInfiniteQuery({
     queryKey: ["MyReservations", "all"],
     queryFn: ({ pageParam = 0 }) => {
-      const status = "all";
+      const status = null;
+      console.log(getMyReservations({ size: 6, status, cursorId: pageParam }));
       return getMyReservations({ size: 6, status, cursorId: pageParam });
     },
     initialPageParam: 0,
@@ -64,15 +67,15 @@ const Reservations = () => {
       const status = viewStatus === "all" ? null : viewStatus;
       return await getMyReservations({ size: 6, status, cursorId: pageParam });
     },
-    getNextPageParam: (lastPage) => lastPage.data.cursorId,
+    getNextPageParam: (lastPage) => lastPage.cursorId,
     initialPageParam: 0,
     select: (data) => ({
-      pages: data?.pages.flatMap((page) => page.data.reservations),
+      pages: data?.pages.flatMap((page) => page.reservations),
       pageParams: data?.pageParams,
     }),
   });
-
   const reservationData = data?.pages || [];
+  console.log(reservationData);
 
   return (
     <>

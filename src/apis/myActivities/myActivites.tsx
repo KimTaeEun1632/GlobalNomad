@@ -1,5 +1,4 @@
 import { requestor } from "@/service/requestor";
-import { instance } from "../apis";
 import {
   Activities,
   GetMyActivitiesParam,
@@ -12,7 +11,7 @@ export const getMyActivities = async ({
 }: GetMyActivitiesParam) => {
   const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
 
-  return await instance.get<GetMyActivitiesRes>(
+  return await requestor.get<GetMyActivitiesRes>(
     `/my-activities?size=${size}${cursorParam}`,
   );
 };
@@ -23,3 +22,4 @@ export const activity = {
     return response.data;
   },
 };
+  

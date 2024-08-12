@@ -1,4 +1,3 @@
-import { AuthProvider } from "@/context/Authcontext";
 import MainLayout from "@/layouts/MainLayout";
 import MyPageLayout from "@/layouts/MyPageLayour";
 import "@/styles/globals.css";
@@ -13,6 +12,7 @@ import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { UserProvider } from "@/context/UserContext";
 import React from "react";
+import { SessionProvider } from "next-auth/react";
 
 // 각 페이지에서 불러와서 쓸 '레이아웃이 적용된 페이지'의 type
 type NextPageWithLayout = NextPage & {
@@ -23,7 +23,10 @@ type AppPropsWithLayout = AppProps & {
   Component: NextPageWithLayout;
 };
 
-export default function App({ Component, pageProps }: AppPropsWithLayout) {
+export default function App({
+  Component,
+  pageProps: { session, ...pageProps },
+}: AppPropsWithLayout) {
   const [queryClient] = React.useState(
     () =>
       new QueryClient({
@@ -49,12 +52,12 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={pageProps.dehydratedState}>
-        <AuthProvider>
+        <SessionProvider session={session}>
           <UserProvider>
             {getLayout(<Component {...pageProps} />)}
             <ReactQueryDevtools initialIsOpen={false} />
           </UserProvider>
-        </AuthProvider>
+        </SessionProvider>
       </HydrationBoundary>
     </QueryClientProvider>
   );

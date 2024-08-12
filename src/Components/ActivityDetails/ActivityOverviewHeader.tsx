@@ -1,8 +1,6 @@
 import ActivitySummary from "./ActivitySummary";
-import KebabOptions from "./KebabOptions";
 import Kebab from "./Kebab";
-import { useUser } from "@/context/UserContext";
-import { useAuth } from "@/context/Authcontext";
+import { useSession } from "next-auth/react";
 
 interface ActivityOverviewHeaderProops {
   userId: number;
@@ -23,8 +21,10 @@ const ActivityOverviewHeader = ({
   rating,
   reviewCount,
 }: ActivityOverviewHeaderProops) => {
-  const { user } = useAuth();
-  const loginId = user?.user.id;
+  const session = useSession();
+
+  const loginId = session.data?.user?.id;
+
   return (
     <div className="my-10 flex items-center justify-between">
       <ActivitySummary

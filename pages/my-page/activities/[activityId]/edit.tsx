@@ -1,9 +1,9 @@
 import ActivityEditForm from "@/Components/ActivityEdit/ActivityEditForm";
 import ActivityEditFormSkeleton from "@/Components/ActivityEdit/ActivityEditFormSkeleton";
-import { useAuth } from "@/context/Authcontext";
 import { requestor } from "@/service/requestor";
 import { dehydrate, QueryClient, useQuery } from "@tanstack/react-query";
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
@@ -34,9 +34,9 @@ export const getServerSideProps: GetServerSideProps = async (
 };
 
 const ActivityEdit = ({ CurrentActivityId }: { CurrentActivityId: number }) => {
-  const { user } = useAuth();
+  const session = useSession();
   const router = useRouter();
-  const loginId = user?.user.id;
+  const loginId = session.data?.user?.id;
 
   const { data, isLoading } = useQuery({
     queryKey: ["activities", CurrentActivityId],
@@ -47,12 +47,12 @@ const ActivityEdit = ({ CurrentActivityId }: { CurrentActivityId: number }) => {
   const userId = data?.userId;
 
   useEffect(() => {
-    if (loginId !== userId) {
+    if (loginId && userId && loginId !== userId) {
       router.push("/");
     }
   }, [loginId, userId, router]);
 
-  if (isLoading) return <ActivityEditFormSkeleton />;
+  if (isLoading || !data) return <ActivityEditFormSkeleton />;
 
   return (
     <>
