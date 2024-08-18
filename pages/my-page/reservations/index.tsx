@@ -1,8 +1,12 @@
 import ReservationList from "@/Components/MyReservation/ReservationList";
 import NoReservationList from "@/Components/MyReservation/NoReservationList";
 import ReservationFilter from "@/Components/MyReservation/ReservationFilter";
-import { getMyReservations } from "@/apis/myReservation/myReservation";
-import { ReservationStatus } from "@/apis/myReservation/myReservation.type";
+// import { getMyReservations } from "@/apis/myReservation/myReservation";
+import {
+  GetMyReservationsParam,
+  GetMyReservationsRes,
+  ReservationStatus,
+} from "@/apis/myReservation/myReservation.type";
 import {
   useInfiniteQuery,
   dehydrate,
@@ -10,11 +14,49 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import InfiniteScroll from "react-infinite-scroller";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import MobileDropDown from "@/Components/MyPage/MobileDropDown";
 import { ReservationSkeleton } from "@/Components/MyReservation/ReservationSkeleton";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
+import { requestor, setContext } from "@/service/requestor";
+
+const getMyReservations = async ({
+  cursorId,
+  size,
+  status,
+}: GetMyReservationsParam) => {
+  const cursorParam = cursorId ? `&cursorId=${cursorId}` : "";
+  const statusParam = status ? `&status=${status}` : "";
+
+  const response = await requestor.get<GetMyReservationsRes>(
+    `/my-reservations?${cursorParam}&size=${size}${statusParam}`,
+  );
+  console.log(response);
+  return response.data;
+};
+
+export const getServerSideProps: GetServerSideProps = async (
+  context: GetServerSidePropsContext,
+) => {
+  setContext(context);
+  const queryClient = new QueryClient();
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: ["MyReservations", "all"],
+    queryFn: ({ pageParam = 0 }) => {
+      const status = null;
+      console.log(getMyReservations({ size: 6, status, cursorId: pageParam }));
+      return getMyReservations({ size: 6, status, cursorId: pageParam });
+    },
+    initialPageParam: 0,
+  });
+
+  return {
+    props: {
+      dehydratedState: dehydrate(queryClient),
+    },
+  };
+};
 
 const Reservations = () => {
   const [viewStatus, setViewStatus] = useState<ReservationStatus>("all");
@@ -25,15 +67,15 @@ const Reservations = () => {
       const status = viewStatus === "all" ? null : viewStatus;
       return await getMyReservations({ size: 6, status, cursorId: pageParam });
     },
-    getNextPageParam: (lastPage) => lastPage.data.cursorId,
+    getNextPageParam: (lastPage) => lastPage.cursorId,
     initialPageParam: 0,
     select: (data) => ({
-      pages: data?.pages.flatMap((page) => page.data.reservations),
+      pages: data?.pages.flatMap((page) => page.reservations),
       pageParams: data?.pageParams,
     }),
   });
-
   const reservationData = data?.pages || [];
+  console.log(reservationData);
 
   return (
     <>
@@ -73,20 +115,3 @@ const Reservations = () => {
 };
 
 export default Reservations;
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  const queryClient = new QueryClient();
-
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: ["MyReservations", null],
-    queryFn: async ({ pageParam = 0 }) =>
-      await getMyReservations({ size: 6, status: null, cursorId: pageParam }),
-    initialPageParam: 0,
-  });
-
-  return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-    },
-  };
-};

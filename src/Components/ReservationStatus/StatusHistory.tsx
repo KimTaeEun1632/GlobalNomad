@@ -74,7 +74,7 @@ const StatusHistory = ({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 overflow-auto">
       <p className="text-xl font-semibold">예약 내역</p>
       {reservationStatus === "pending" ? (
         <div className="flex flex-col gap-3.5">

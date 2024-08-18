@@ -3,18 +3,44 @@ import { USER_INPUT_VALIDATION } from "@/constants/user";
 import { useForm } from "react-hook-form";
 import { FormValues } from "@/apis/auth/auth.type";
 import { useEffect, useState } from "react";
-import {
-  useUsersCheckMyInformation,
-  useUsersEditMyInformation,
-} from "@/service/users/useUsersService";
-import { UsersEditMyInformation } from "@/service/users/users.type";
-import { useUser } from "@/context/UserContext";
 import Toast from "@/Components/Toast/Toast";
 import MobileDropDown from "@/Components/MyPage/MobileDropDown";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
 import MobileImageChange from "@/Components/MyPage/MobileImageChange";
 import MyPageSkeleton from "@/Components/MyPage/MyPageSkeleton";
+import { GetServerSideProps } from "next";
+import { getSession, useSession } from "next-auth/react";
+import { useMutation } from "@tanstack/react-query";
+import { patchUserInfo } from "@/apis/user/user";
+import { PatchUserDataReq, PatchUserDataRes } from "@/apis/user/user.type";
+import { id } from "date-fns/locale";
+import ImageInput from "@/Components/Input/ImageInput";
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const sessionData = await getSession(context);
+
+  const userData = {
+    email: sessionData?.user?.email || null,
+    nickname: sessionData?.user?.name || null,
+    profileImageUrl: sessionData?.user?.image || null,
+  };
+  console.log("유저데이타", userData);
+  return {
+    props: { userData },
+  };
+};
+
+interface MyPageProps {
+  userData: getMyData;
+}
+
+interface getMyData {
+  email: string;
+  id: number;
+  nickname: string;
+  profileImageUrl: string;
+}
 
 const { email, password, nickname, passwordConfirm } = USER_INPUT_VALIDATION;
 
@@ -53,62 +79,53 @@ const rules = {
   },
 };
 
-const MyPage = () => {
+const MyPage = ({ userData }: MyPageProps) => {
   const {
     register,
     handleSubmit,
     getValues,
     formState: { isValid, errors },
-    setValue,
-  } = useForm<FormValues>({ mode: "onChange" });
+  } = useForm<FormValues>({
+    mode: "onChange",
+    defaultValues: {
+      nickname: userData.nickname,
+      email: userData.email,
+      profileImageUrl: userData.profileImageUrl, // Add this line
+    },
+  });
 
-  const { data: response, isLoading, isError } = useUsersCheckMyInformation();
-  const { mutate: editUserInformation } = useUsersEditMyInformation();
-  const { user, setUser } = useUser();
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("");
-
-  useEffect(() => {
-    if (response && response.data) {
-      setValue("email", response.data.email);
-      setValue("nickname", response.data.nickname);
-    }
-  }, [response, setValue]);
+  const { update } = useSession();
 
   const onSubmit = (formData: FormValues) => {
-    const payload: UsersEditMyInformation = {
+    const profileImageUrl = getValues("profileImageUrl");
+    console.log(profileImageUrl);
+    const data = {
       nickname: formData.nickname || "",
-      newPassword: formData.password,
-      profileImageUrl: response?.data.profileImageUrl || "",
+      newPassword: formData.password || "",
+      profileImageUrl: profileImageUrl || "",
     };
 
-    editUserInformation(payload as UsersEditMyInformation, {
-      onSuccess: (updateData) => {
-        setUser(updateData.data);
-        setToastMessage("정보가 성공적으로 수정되었습니다.");
-        setShowToast(true);
-      },
-      onError: (error) => {
-        console.error("에러 발생:", error);
-        setToastMessage("정보 수정에 실패했습니다.");
-        setShowToast(true);
-      },
-    });
+    patchUserInfoMutation.mutate(data);
   };
 
-  if (isLoading) {
-    return <MyPageSkeleton />;
-  }
-
-  if (isError) {
-    return <div>Error...</div>;
-  }
-
-  if (!response) {
-    return <div>Not Found data...</div>;
-  }
-
-  const data = response.data;
+  const patchUserInfoMutation = useMutation({
+    mutationFn: (data: PatchUserDataReq) => patchUserInfo(data),
+    onSuccess: (data: PatchUserDataRes) => {
+      update({
+        name: data.nickname,
+        image: data.profileImageUrl,
+      });
+      setToastMessage("정보가 성공적으로 수정되었습니다.");
+      setShowToast(true);
+    },
+    onError: (error) => {
+      console.error("에러 발생:", error);
+      setToastMessage("정보 수정에 실패했습니다.");
+      setShowToast(true);
+    },
+  });
 
   return (
     <>
@@ -131,12 +148,19 @@ const MyPage = () => {
               저장하기
             </button>
           </div>
-          <MobileImageChange profileImageUrl="" handleChangeImage={() => {}} />
+          <MobileImageChange
+            profileImageUrl={userData.profileImageUrl}
+            handleChangeImage={() => {}}
+          />
           <div className="flex flex-col gap-4">
+            <ImageInput
+              profileImageUrl={userData.profileImageUrl}
+              name="profileImageUrl"
+            />
             <LoginInput
               label="닉네임"
               type="text"
-              placeholder={data.nickname}
+              placeholder={userData.nickname}
               isError={!!errors.nickname}
               errorMessage={errors.nickname?.message}
               {...register("nickname", rules.nicknameRules)}
@@ -144,7 +168,7 @@ const MyPage = () => {
             <LoginInput
               label="이메일"
               type="email"
-              placeholder={data.email}
+              placeholder={userData.email}
               isError={!!errors.email}
               errorMessage={errors.email?.message}
               {...register("email", rules.emailRules)}

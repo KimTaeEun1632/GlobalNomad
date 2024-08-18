@@ -15,7 +15,7 @@ export interface UsersCheckMyInformation {
 
 export interface UsersEditMyInformation {
   nickname: string;
-  profileImageUrl: string;
+  profileImageUrl?: string;
   newPassword?: string;
 }
 

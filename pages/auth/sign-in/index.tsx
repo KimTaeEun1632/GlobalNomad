@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import LoginInput from "@/Components/Input/LoginInput";
 import Link from "next/link";
-import { FormValues } from "@/apis/auth/auth.type";
 import { useForm } from "react-hook-form";
+import { signIn } from "next-auth/react";
 import { USER_INPUT_VALIDATION } from "@/constants/user";
-import { useAuth } from "@/context/Authcontext";
 import EmptyLayout from "@/layouts/EmptyLayout";
 import HeadMeta from "@/Components/Common/HeadMeta";
 import { META_TAG } from "@/constants/metaTag";
+import { FormValues } from "@/apis/auth/auth.type";
+import { useRouter } from "next/router";
 
 const { email, password } = USER_INPUT_VALIDATION;
 
@@ -37,16 +38,29 @@ const rules = {
 };
 
 const SignIn = () => {
-  const { signIn } = useAuth();
-  const { formState, register, handleSubmit } = useForm<FormValues>({
+  const { formState, register, handleSubmit } = useForm({
     defaultValues: { email: "", password: "" },
     mode: "onBlur",
   });
 
+  const router = useRouter();
+
   const { isValid, errors } = formState;
 
   const onSubmit = async (data: FormValues) => {
-    await signIn(data);
+    const { email, password } = data;
+
+    const res = await signIn("credentials", {
+      redirect: false,
+      email: email,
+      password: password,
+    });
+
+    if (res?.error) {
+      alert("로그인에 실패했습니다.");
+    } else {
+      router.push("/");
+    }
   };
 
   return (

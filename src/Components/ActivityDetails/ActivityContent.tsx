@@ -12,7 +12,7 @@ interface ActivityContentProps {
 
 const ActivityContent = ({ activityId }: ActivityContentProps) => {
   const { data, isLoading } = useQuery<DataType>({
-    queryKey: ["datas", activityId],
+    queryKey: ["ActivityData", activityId],
     queryFn: () => getDatas(activityId),
   });
 

@@ -8,10 +8,11 @@
  */
 
 export interface FormValues {
-  email: string;
+  email?: string;
   nickname?: string;
-  password: string;
+  password?: string;
   passwordConfirm?: string;
+  profileImageUrl?: string;
 }
 
 export interface profileImageUrlValue {

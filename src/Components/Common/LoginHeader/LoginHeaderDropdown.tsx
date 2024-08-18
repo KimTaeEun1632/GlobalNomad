@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useUsersCheckMyInformation } from "@/service/users/useUsersService";
 import Link from "next/link";
-import { useAuth } from "@/context/Authcontext";
 import { useUser } from "@/context/UserContext";
 import LoginHeaderDropdownSkeleton from "./LoginHeaderDropdownSkeleton";
+import { signOut, useSession } from "next-auth/react";
 
 const LoginHeaderDropdown: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { signOut } = useAuth();
-  const { user, setUser } = useUser();
-  const profileImageUrl = user?.profileImageUrl || "";
+  const session = useSession();
+  const profileImageUrl = session.data?.user?.image || "";
   const {
     data: response,
     isLoading,
@@ -17,12 +16,6 @@ const LoginHeaderDropdown: React.FC = () => {
   } = useUsersCheckMyInformation(profileImageUrl);
 
   const dropdownRef = useRef<HTMLLIElement>(null);
-
-  useEffect(() => {
-    if (response && response.data) {
-      setUser(response.data);
-    }
-  }, [response, setUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,17 +75,17 @@ const LoginHeaderDropdown: React.FC = () => {
       >
         <div className="flex items-center justify-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gnDarkGreen text-center text-sm font-semibold text-gnGray200">
-            {user?.profileImageUrl ? (
+            {session.data?.user?.image ? (
               <img
                 className="h-full w-full rounded-full"
-                src={data.profileImageUrl}
+                src={session.data.user.image}
                 alt="Profile Picture"
               />
             ) : (
-              user?.nickname[0]
+              <div>asdf</div>
             )}
           </div>
-          <div>{user?.nickname}</div>
+          <div>{session.data?.user?.name}</div>
         </div>
         <div
           className={`dropdown-menu absolute right-0.5 top-12 ${isDropdownOpen ? "block" : "hidden"} mt-2 h-auto rounded-lg border border-gray-200 bg-white shadow-lg`}

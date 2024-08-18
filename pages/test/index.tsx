@@ -1,13 +1,12 @@
-import ActivityContentSkeleton from "@/Components/ActivityDetails/ActivityContentSkeleton";
-import ReviewSkeleton from "@/Components/ActivityDetails/ReviewSkeleton";
-import AddressSearch from "@/Components/ActivityRegist/AddressPostcode";
+import TestKakaoMap from "@/Components/ActivityDetails/TestKakaoMap";
+import React from "react";
 
-const test = () => {
+const index = () => {
   return (
-    <>
-      <AddressSearch />
-    </>
+    <div>
+      <TestKakaoMap />
+    </div>
   );
 };
 
-export default test;
+export default index;

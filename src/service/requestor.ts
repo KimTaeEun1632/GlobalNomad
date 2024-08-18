@@ -1,5 +1,12 @@
-import axios, { AxiosInstance, type AxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  type AxiosRequestConfig,
+} from "axios";
 import Cookies from "js-cookie";
+import { GetServerSidePropsContext } from "next";
+import { Session } from "next-auth";
+import { getSession, signIn } from "next-auth/react";
 
 const axiosRequestConfig: AxiosRequestConfig = {
   baseURL: `${process.env.NEXT_PUBLIC_API_URL}`,
@@ -12,41 +19,88 @@ const axiosRequestConfig: AxiosRequestConfig = {
 
 export const requestor: AxiosInstance = axios.create(axiosRequestConfig);
 
-requestor.interceptors.request.use((config) => {
-  if (config.headers.Authorization) return config;
+let context = <GetServerSidePropsContext>{};
 
-  const accessToken = Cookies.get("accessToken");
-  if (accessToken) {
-    config.headers["Authorization"] = `Bearer ${accessToken}`;
-  }
-  return config;
-});
+export const setContext = (_context: GetServerSidePropsContext) => {
+  context = _context;
+};
+
+const updateSession = async (data: {
+  accessToken: string;
+  refreshToken: string;
+  user: Session["user"];
+}) => {
+  await signIn("credentials", {
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    id: data.user?.id,
+    image: data.user?.image,
+    name: data.user?.name,
+    email: data.user?.email,
+    redirect: false,
+  });
+};
+
+requestor.interceptors.request.use(
+  async (config) => {
+    const session = await getSession(context);
+
+    if (!session || !session.user?.accessToken) {
+      return config;
+    }
+
+    config.headers.Authorization = `Bearer ${session.user.accessToken}`;
+
+    return config;
+  },
+  (error: AxiosError) => {
+    // 요청 에러 처리
+    console.log(error.message);
+    return Promise.reject(error);
+  },
+);
 
 requestor.interceptors.response.use(
-  (res) => res,
+  function (response) {
+    return response;
+  },
   async (error) => {
-    const originalRequest = error.config;
-    const refreshToken = Cookies.get("refreshToken");
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      refreshToken
-    ) {
-      const res = await requestor.post(
-        "/auth/tokens",
-        {},
-        {
-          headers: { Authorization: `Bearer ${refreshToken}`, _retry: true },
-        },
-      );
-      const accessToken = res.data.accessToken;
-      const nextRefreshToken = res.data.refreshToken;
-      Cookies.set("accessToken", accessToken);
-      Cookies.set("refreshToken", nextRefreshToken);
-      originalRequest._retry = true;
+    const { config, response } = error;
 
-      return requestor(originalRequest);
+    if (
+      response &&
+      response.status === 401 &&
+      error.response.data.message === "Unauthorized"
+    ) {
+      const originalRequest = config;
+      const session = await getSession(context);
+
+      try {
+        if (!session) throw new Error();
+        const { data } = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}auth/tokens`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${session?.user?.refreshToken}`,
+            },
+          },
+        );
+
+        updateSession({
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          user: session.user,
+        });
+
+        originalRequest.headers.authorization = `Bearer ${data.accessToken}`;
+        return axios(originalRequest);
+      } catch (e) {
+        window.location.replace("/auth/sign-in");
+      }
     }
+
+    console.log(error.message);
     return Promise.reject(error);
   },
 );
@@ -60,12 +114,12 @@ export const requestorWithFormData: AxiosInstance = axios.create({
   },
 });
 
-requestorWithFormData.interceptors.request.use((config) => {
+requestorWithFormData.interceptors.request.use(async (config) => {
   if (config.headers.Authorization) return config;
 
-  const accessToken = Cookies.get("accessToken");
-  if (accessToken) {
-    config.headers["Authorization"] = `Bearer ${accessToken}`;
+  const session = await getSession(context);
+  if (session?.user?.accessToken) {
+    config.headers["Authorization"] = `Bearer ${session?.user?.accessToken}`;
   }
   return config;
 });
@@ -74,23 +128,30 @@ requestorWithFormData.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
-    const refreshToken = Cookies.get("refreshToken");
+    const session = await getSession(context);
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      refreshToken
+      session?.user?.refreshToken
     ) {
       const res = await requestorWithFormData.post(
         "/auth/tokens",
         {},
         {
-          headers: { Authorization: `Bearer ${refreshToken}`, _retry: true },
+          headers: {
+            Authorization: `Bearer ${session?.user?.refreshToken}`,
+            _retry: true,
+          },
         },
       );
       const accessToken = res.data.accessToken;
       const nextRefreshToken = res.data.refreshToken;
-      Cookies.set("accessToken", accessToken);
-      Cookies.set("refreshToken", nextRefreshToken);
+
+      updateSession({
+        accessToken,
+        refreshToken: nextRefreshToken,
+        user: session.user,
+      });
       originalRequest._retry = true;
 
       return requestorWithFormData(originalRequest);

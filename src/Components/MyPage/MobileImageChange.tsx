@@ -1,4 +1,3 @@
-import { useUser } from "@/context/UserContext";
 import {
   useUsersCheckMyInformation,
   useUsersEditMyInformation,
@@ -8,9 +7,10 @@ import { UsersEditMyInformation } from "@/service/users/users.type";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import Toast from "../Toast/Toast";
+import { useSession } from "next-auth/react";
 
 interface UsersEditImageUploaderProps {
-  profileImageUrl: string;
+  profileImageUrl?: string;
   handleChangeImage: (imageUrl: string) => void;
 }
 
@@ -19,11 +19,15 @@ const MobileImageChange = ({
   handleChangeImage,
 }: UsersEditImageUploaderProps) => {
   const [pickedImage, setPickedImage] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string>(profileImageUrl);
+  const [profileImage, setProfileImage] = useState<string>(
+    profileImageUrl as string,
+  );
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("");
 
-  const { user } = useUser();
+  const session = useSession();
+  const { update } = useSession();
+
   const queryClient = useQueryClient();
 
   const { mutate: uploadImage } = useUsersProfileImageUrl();
@@ -53,13 +57,17 @@ const MobileImageChange = ({
               setProfileImage(newProfileImageUrl);
               handleChangeImage(newProfileImageUrl);
               const payload: UsersEditMyInformation = {
-                nickname: user!.nickname,
+                nickname: session.data?.user?.name || "",
                 profileImageUrl: newProfileImageUrl,
               };
               editImage(payload, {
                 onSuccess: () => {
                   queryClient.invalidateQueries({
                     queryKey: ["usersCheckMyInformation"],
+                  });
+                  update({
+                    name: session.data?.user?.name,
+                    image: response.data.profileImageUrl,
                   });
                   setToastMessage("프로필 이미지가 성공적으로 수정되었습니다.");
                   setShowToast(true);

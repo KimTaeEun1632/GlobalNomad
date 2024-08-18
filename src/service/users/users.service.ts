@@ -21,7 +21,7 @@ class UsersService {
   }
 
   patchUsersEditMyInformation(data: UsersEditMyInformation) {
-    console.log(data);
+    console.log("여기가 다르냐", data);
     return requestor.patch<UsersEditMyInformation>(`/users/me`, data);
   }
 

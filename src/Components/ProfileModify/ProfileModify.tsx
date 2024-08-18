@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   useUsersEditMyInformation,
@@ -10,6 +10,8 @@ import { useUser } from "@/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import Toast from "@/Components/Toast/Toast";
 import { ProfileModifySkeleton } from "./ProfileModifySkeleton";
+import { getSession, useSession } from "next-auth/react";
+import { GetServerSideProps } from "next";
 
 interface UsersEditImageUploaderProps {
   profileImageUrl: string;
@@ -28,6 +30,14 @@ const ProfileModify = ({
   const { user, setUser } = useUser();
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("");
+  const session = useSession();
+  const { update } = useSession();
+
+  useEffect(() => {
+    if (session.data?.user?.image) {
+      setProfileImage(session.data.user.image);
+    }
+  }, [session.data?.user?.image]);
 
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -52,21 +62,37 @@ const ProfileModify = ({
               const newProfileImageUrl = response.data.profileImageUrl;
               setProfileImage(newProfileImageUrl);
               handleChangeImage(newProfileImageUrl);
+
+              console.log("쿼리 무효화 시작");
+
+              // 쿼리 무효화
               queryClient.invalidateQueries({
                 queryKey: ["usersCheckMyInformation"],
+                exact: true,
               });
+
+              console.log("쿼리 무효화 완료");
+
               const payload: UsersEditMyInformation = {
-                nickname: user!.nickname,
+                nickname: session.data?.user?.name || "",
                 profileImageUrl: newProfileImageUrl,
               };
               editImage(payload, {
                 onSuccess: (response) => {
                   queryClient.invalidateQueries({
                     queryKey: ["usersCheckMyInformation"],
+                    exact: true,
                   });
-                  setUser(response.data);
-                  setToastMessage("프로필 이미지가 성공적으로 수정되었습니다.");
-                  setShowToast(true);
+
+                  update({
+                    name: response.data.nickname,
+                    image: response.data.profileImageUrl,
+                  }).then(() => {
+                    setToastMessage(
+                      "프로필 이미지가 성공적으로 수정되었습니다.",
+                    );
+                    setShowToast(true);
+                  });
                 },
                 onError: (error) => {
                   setToastMessage("프로필 이미지 수정에 실패했습니다.");
@@ -121,8 +147,8 @@ const ProfileModify = ({
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, true)}
                 />
-                {data.profileImageUrl ? (
-                  <img src={data.profileImageUrl} alt="profileImgUrl" />
+                {profileImage ? (
+                  <img src={profileImage} alt="profileImgUrl" />
                 ) : (
                   <img
                     src="/images/defaultProfileImage.png"

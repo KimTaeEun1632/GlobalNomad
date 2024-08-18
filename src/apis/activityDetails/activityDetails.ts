@@ -3,6 +3,7 @@ import { instance } from "../apis";
 import { DataType } from "./activityDetails.type";
 import { ReviewData } from "./activityDetails.type";
 import { AvailableSchedule } from "./activityDetails.type";
+import { requestor } from "@/service/requestor";
 
 const BASE_URL = "https://sp-globalnomad-api.vercel.app/4-17";
 
@@ -13,7 +14,7 @@ export async function getDatas(activityId: number): Promise<DataType> {
 }
 
 export const getActivityDetails = async (activityId: number) => {
-  const response = await instance.get(`/activities/${activityId}`);
+  const response = await requestor.get(`/activities/${activityId}`);
   const ActivityDetailsData = response.data;
   return ActivityDetailsData;
 };
@@ -35,7 +36,7 @@ export const getSchedule = async (
   month: string,
   activityId: number,
 ): Promise<AvailableSchedule[]> => {
-  const response = await instance.get(
+  const response = await requestor.get(
     `/activities/${activityId}/available-schedule`,
     {
       params: {
@@ -70,7 +71,7 @@ export const ReservationRequest = async (
   data: { scheduleId: number; headCount: number },
   activityId: number,
 ) => {
-  const response = await instance.post(
+  const response = await requestor.post(
     `activities/${activityId}/reservations`,
     data,
   );
